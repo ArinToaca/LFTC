@@ -30,7 +30,7 @@ def getnexttoken():
     ch = s[pCrtCh]
     while(1):
         ch = s[pCrtCh]
-        print("#%r char=%r(%r) pCrtCh=%r:\n" % (state, ch, ord(ch), pCrtCh))
+        # print("#%r char=%r(%r) pCrtCh=%r:\n" % (state, ch, ord(ch), pCrtCh))
         if state == 0:
             if(ch == ' ' or ch == '\t' or ch == '\r'):
                 pCrtCh += 1
@@ -136,10 +136,6 @@ def getnexttoken():
                 pCrtCh += 1
                 state = 49
                 break
-            # END
-            elif(ch == 0):
-                tokens.append(('END', '', line))
-                return tokens[-1]
             else:
                 pCrtCh += 1
                 break
@@ -332,7 +328,7 @@ def getnexttoken():
             char_string = s[pStartCh-1:pCrtCh]
             char_string = char_string.replace('\\\\', '\\')
             char_string = char_string.replace('\'', '')
-            print('!!!!!!!!!', char_string)
+            # print('!!!!!!!!!', char_string)
             tokens.append(('CT_CHAR', ord(char_string), line))
             pStartCh = pCrtCh + 1
             state = 0
@@ -574,9 +570,10 @@ def main(filepath):
     global pStartCh
     global ch
     length = len(s)
-    while pCrtCh < length - 1:
+    while pCrtCh < length:
         getnexttoken()
-    tokens.append(('END', '', line))
+    tokens.append(('END', '', line - 1))
+    return tokens
 
 
 if __name__ == '__main__':
