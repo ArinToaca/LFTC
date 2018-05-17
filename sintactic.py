@@ -1,34 +1,88 @@
-import lexer
 import sys
+import lexer
 
-count = 0
-ATOM = 0
-CONTENT = 1
+count = False
+ATOM = False
+CONTENT = True
 LINE = 2
 tokens = []
+
+# STATES
+
+ADD = "ADD"
+SUB = "SUB"
+MUL = "MUL"
+DIV = "DIV"
+LINECOMMENT = "LINECOMMENT"
+COMMENT = "COMMENT"
+DOT = "DOT"
+AND = "AND"
+OR = "OR"
+NOT = "NOT"
+NOTEQ = "NOTEQ"
+ASSIGN = "ASSIGN"
+EQUAL = "EQUAL"
+LESS = "LESS"
+LESSEQ = "LESSEQ"
+GREATER = "GREATER"
+GREATEREQ = "GREATEREQ"
+COMMA = "COMMA"
+SEMICOLON = "SEMICOLON"
+LPAR = "LPAR"
+RPAR = "RPAR"
+LBRACKET = "LBRACKET"
+RBRACKET = "RBRACKET"
+LACC = "LACC"
+RACC = "RACC"
+ID = "ID"
+SPACE = ""
+CT_INT = "CT_INT"
+CT_REAL = "CT_REAL"
+CT_CHAR = "CT_CHAR"
+CT_STRING = "CT_STRING"
+BREAK = "BREAK"
+CHAR = "CHAR"
+DOUBLE = "DOUBLE"
+ELSE = "ELSE"
+FOR = "FOR"
+IF = "IF"
+INT = "INT"
+RETURN = "RETURN"
+STRUCT = "STRUCT"
+VOID = "VOID"
+WHILE = "WHILE"
+END = "END"
+
+
 def consume(atom):
     if(tokens[count][ATOM] == atom):
-        count += 1
+        count += True
         return True
     return False
 
-# unit: ( declStruct | declFunc | declVar )* END ;
+
 def unit():
-
+    '''unit: ( declStruct | declFunc | declVar )* END'''
     while(True):
-        if(declStruct()):
-	    else if(declFunc()):
-                else if(declVar()):
-            else break
-        if(consume(END)):
-		return True
+        if declStruct():
+            continue
+        elif declFunc():
+            continue
+        elif declVar():
+            continue
         else:
-		raise Exception("Missing end at unit. line- %s" % tokens[count][LINE])
+            break
+        if consume('END'):
+                return True
+        else:
+                raise Exception("Missing end at unit. line- %s"
+                                % tokens[count][LINE])
 
- 	return False
+        return False
 
-# declStruct: STRUCT ID (LACC declVar* RACC SEMICOLON)? ;
+
 def declStruct():
+    """declStruct: STRUCT ID (LACC declVar* RACC SEMICOLON)?"""
     init_count = curr_count
     if(consume(STRUCT)):
         if(consume(ID)):
@@ -36,36 +90,45 @@ def declStruct():
                 while(declVar()):
                     if(consume(RACC)):
                         if(consume(SEMICOLON)):
-			    return True
-			else:
-			    raise Exception("Lipseste ';' dupa '}' in declStruct. line - %s" % tokens[count][LINE])
+                            return True
+                        else:
+                            raise Exception("Lipseste '' dupa '' "
+                                            "in declStruct. line - %s" %
+                                            tokens[count][LINE])
                     else:
-		        raise Exception("Lipseste '}' dupa 'declVar' | '{' in declStruct. line - %s" % tokens[count][LINE])
-	curr_count = init_count
-	return False
-# declVar:  typeBase ID arrayDecl? ( COMMA ID arrayDecl? )* SEMICOLON ;
+                        raise Exception("Lipseste '' dupa 'declVar' | ':' "
+                                        "in declStruct. line - %s" %
+                                        tokens[count][LINE])
+        curr_count = init_count
+        return False
+
+
 def declVar():
-    init_count= count
+    """declVar:  typeBase ID arrayDecl? ( COMMA ID arrayDecl? )* SEMICOLON"""
+    init_count = count
     if(typeBase()):
         if(consume(ID)):
-            arrayDecl();
+            arrayDecl()
             while(True):
                 if(consume(COMMA)):
                     if(consume(ID)):
                         arrayDecl()
                     else:
-                        raise Exception("Lipseste ID-ul dupa ',' in declVar. - line - %s" % tokens[count][LINE])
+                        raise Exception("Lipseste ID-ul dupa ',' in declVar. "
+                                        "- line - %s" % tokens[count][LINE])
                 else:
                     break
                 if(consume(SEMICOLON)):
                     return True
                 else:
-                    raise Exception("Lipseste ID' dupa 'typeBase' in declVar. line - %s" % tokens[count][LINE]);
-    count = init_count;
+                    raise Exception("Lipseste ID' dupa 'typeBase' in declVar. "
+                                    "line - %s" % tokens[count][LINE])
+    count = init_count
     return False
 
-# typeBase: INT | DOUBLE | CHAR | STRUCT ID ;
+
 def typeBase():
+    """typeBase: INT | DOUBLE | CHAR | STRUCT ID"""
     init_count = count
     if(consume(INT)):
             return True
@@ -77,621 +140,614 @@ def typeBase():
         if(consume(ID)):
                     return True
         else:
-            raise Exception("Lipseste 'ID' dupa 'STRUCT' in typeBase.")
+            raise Exception("Lipseste 'ID' dupa 'STRUCT' in typeBase line - %s"
+                            % tokens[count][LINE])
     count = init_count
     return True
-}
 
-# arrayDecl: LBRACKET expr? RBRACKET ;
+
 def arrayDecl():
-	init_count = count
-        if(consume(LBRACKET)):
-	    expr()
-            if(consume(RBRACKET)):
-	        return True
-            else:
-		raise Exception("Lipseste ')' dupa '(' sau expr in arrayDecl.")
-	count = init_count
-	return False
-# typeName: typeBase arrayDecl? ;
+    """arrayDecl: LBRACKET expr? RBRACKET """
+    init_count = count
+    if(consume(LBRACKET)):
+        expr()
+        if(consume(RBRACKET)):
+            return True
+        else:
+            raise Exception("Lipseste ')' dupa '(' sau expr in arrayDecl.")
+    count = init_count
+    return False
+
+
 def typeName():
-	init_count = count
-        if(typeBase()):
-	    arrayDecl()
-	    return True
-	count = init_count 
-	return False
+    '''typeName: typeBase arrayDecl?'''
+    init_count = count
+    if(typeBase()):
+        arrayDecl()
+        return True
+    count = init_count
+    return False
 
-/*
-declFunc: ( typeBase MUL? | VOID ) ID
-                        LPAR ( funcArg ( COMMA funcArg )* )? RPAR
-                        stmCompound ;
-*/
-int declFunc(){
-	Token *initTk = currToken;
 
-	if(typeBase()){
-		consume(MUL);
-	} else{
-		if(consume(VOID)){
-		} else{
-			return 0;
-		}
-	}
+def declFunc():
+    '''declFunc: ( typeBase MUL? | VOID ) ID
+                LPAR ( funcArg ( COMMA funcArg )* )? RPAR
+        stmCompound
+    '''
 
-	if(consume(ID)){
-		if(consume(LPAR)){
-			if(funcArg()){
-				while(1){
-					if(consume(COMMA)){
-						if(funcArg()){
+    init_count = count
 
-						} else {
-							tokenError(currToken, "Lipseste funcArg dupa ',' in declFunc.");
-						}
-					} else{
-						break;
-					}
-				}
-			}
-			if(consume(RPAR)){
-				if(stmCompound()){
-					return 1;
-				} else{
-					tokenError(currToken, "Lipseste stmCompound in declFunc.");
-				}
-			} else{
-				tokenError(currToken, "Lipseste ')' dupa funcArg in declFunc.");
-			}
-		}
-	} else{
-		tokenError(currToken, "Lipseste ID in declFunc.");
-	}
+    if typeBase():
+        consume(MUL)
+    else:
+        if consume(VOID):
+            pass
+        else:
+            return False
 
-	currToken = initTk;
-	return 0;
-}
-// funcArg: typeBase ID arrayDecl? ;
-int funcArg(){
-	Token *initTk = currToken;
+    if consume(ID):
+        if(consume(LPAR)):
+            if(funcArg()):
+                while(True):
+                    if(consume(COMMA)):
+                        if(funcArg()):
+                            pass
+                        else:
+                            raise Exception("Lipseste funcArg dupa "
+                                            "',' in declFunc.")
+                    else:
+                                break
+                    if(consume(RPAR)):
+                        if(stmCompound()):
+                            return True
+                        else:
+                            raise Exception("Lipseste stmCompound "
+                                            "in declFunc. line - %s"
+                                            % tokens[count][i])
+                    else:
+                            raise Exception("Lipseste ')' dupa funcArg in "
+                                            "declFunc. line - %s"
+                                            % tokens[count][LINE])
+    else:
+        raise Exception(count, "Lipseste ID in declFunc.")
+    count = init_count
+    return False
 
-	if(typeBase()){
-		if(consume(ID)){
-			arrayDecl();
-			return 1;
-		} else{
-			tokenError(currToken, "Lipseste ID in funcArg.");
-		}
-	}
-	currToken = initTk;
-	return 0;
-}
 
-/*stm: stmCompound
+def funcArg():
+    """funcArg: typeBase ID arrayDecl? """
+    init_count = count
+    if(typeBase()):
+        if(consume(ID)):
+            arrayDecl()
+            return True
+        else:
+            raise Exception(count, "Lipseste ID in funcArg.")
+
+    count = init_count
+    return False
+
+
+def stm():
+    '''stm: stmCompound
            | IF LPAR expr RPAR stm ( ELSE stm )?
            | WHILE LPAR expr RPAR stm
            | FOR LPAR expr? SEMICOLON expr? SEMICOLON expr? RPAR stm
            | BREAK SEMICOLON
            | RETURN expr? SEMICOLON
-           | expr? SEMICOLON ;*/
-int stm(){
-	Token *initTk = currToken;
-	if(stmCompound()){
-		return 1;
-	}
-	if(consume(IF)){
-		if(consume(LPAR)){
-			if(expr()){
-				if(consume(RPAR)){
-					if(stm()){
-						if(consume(ELSE)){
-							if(stm()){
-								return 1;
-							} else {
-								tokenError(currToken, "Lipseste instructiunea dupa else in stm");
-							}
-						}
-						return 1;
-					} else{
-						tokenError(currToken, "Lipseste instructiunea dupa if in stm");
-					}
-				} else {
-					tokenError(currToken, "Lipseste ')' de la conditia if-ului in stm");
-				}
-			} else{
-				tokenError(currToken, "Lipseste conditia if-ului sau conditia if-ului contine o eroare in stm");
-			}
-		} else{
-			tokenError(currToken, "Lipseste '(' de la conditia if-ului in stm");
-		}
-	}
-	if(consume(WHILE)){
-		if(consume(LPAR)){
-			if(expr()){
-				if(consume(RPAR)){
-					if(stm()){
-						return 1;
-					}else{
-						tokenError(currToken, "Lipseste instructiunea dupa while in stm");
-					}
-				}else{
-					tokenError(currToken, "Lipseste ')' de la conditia while-ului in stm");
-				}
-			}else{
-				tokenError(currToken, "Lipseste conditia while-ului in stm");
-			}
-		}else{
-			tokenError(currToken, "Lipseste '(' de la conditia while-ului in stm");
-		}
-	}
-	if(consume(FOR)){
-		if(consume(LPAR)){
-			expr();
+           | expr? SEMICOLON '''
+    init_count = count
+    if(stmCompound()):
+            return True
+    if(consume(IF)):
+        if(consume(LPAR)):
+            if(expr()):
+                if(consume(RPAR)):
+                    if(stm()):
+                        if(consume(ELSE)):
+                            if(stm()):
+                                return True
+                            else:
+                                raise Exception("Lipseste instructiunea"
+                                                "dupa else in stm line - %s"
+                                                % tokens[count][LINE])
+                                return True
+                        else:
+                            raise Exception("Lipseste instructiunea dupa if in"
+                                    "stm line - %s" % tokens[count][LINE])
+                    else:
+                        raise Exception(count, "Lipseste ')' de la conditia if-ului in stm")
+            else:
+                raise Exception(count, "Lipseste conditia if-ului sau conditia if-ului contine o eroare in stm")
+        else:
+            raise Exception(count, "Lipseste '(' de la conditia if-ului in stm")
+        if(consume(WHILE)):
+                if(consume(LPAR)):
+                        if(expr()):
+                                if(consume(RPAR)):
+                                        if(stm()):
+                                                return True
+                                        else:
+                                                raise Exception(count, "Lipseste instructiunea dupa while in stm")
+                                        
+                                else:
+                                        raise Exception(count, "Lipseste ')' de la conditia while-ului in stm")
+                                
+                        else:
+                                raise Exception(count, "Lipseste conditia while-ului in stm")
+                        
+                else:
+                        raise Exception(count, "Lipseste '(' de la conditia while-ului in stm")
+                
+        
+        if(consume(FOR)):
+                if(consume(LPAR)):
+                        expr()
 
-			if(consume(SEMICOLON)){
-				expr();
+                        if(consume(SEMICOLON)):
+                                expr()
 
-				if(consume(SEMICOLON)){
-					expr();
-					if(consume(RPAR)){
-						if(stm()){
-							return 1;
-						}else{
-							tokenError(currToken, "Lipseste instructiunea dupa for in stm");
-						}
-					}else{
-						tokenError(currToken, "Lipseste ')' de la conditia for-ului in stm");
-					}
-				}else{
-					tokenError(currToken, "Lipseste al 2-lea caracter ';' al for-ului in stm");
-				}
-			}else{
-				tokenError(currToken, "Lipseste primul caracter ';' al for-ului in stm");
-			}
-		}else{
-			tokenError(currToken, "Lipseste '(' de la conditia for-ului in stm");
-		}
-	}
-	if(consume(BREAK)){
+                                if(consume(SEMICOLON)):
+                                        expr()
+                                        if(consume(RPAR)):
+                                                if(stm()):
+                                                        return True
+                                                else:
+                                                        raise Exception(count, "Lipseste instructiunea dupa for in stm")
+                                                
+                                        else:
+                                                raise Exception(count, "Lipseste ')' de la conditia for-ului in stm")
+                                        
+                                else:
+                                        raise Exception(count, "Lipseste al 2-lea caracter '' al for-ului in stm")
+                                
+                        else:
+                                raise Exception(count, "Lipseste primul caracter '' al for-ului in stm")
+                        
+                else:
+                        raise Exception(count, "Lipseste '(' de la conditia for-ului in stm")
+                
+        
+        if(consume(BREAK)):
 
-		if(consume(SEMICOLON)){
-			return 1;
-		} else{
-			tokenError(currToken, "Lipseste ';' de dupa instructiunea 'break' in stm");
-		}
-	}
-	if(consume(RETURN)){
-		expr();
+                if(consume(SEMICOLON)):
+                        return True
+                 else:
+                        raise Exception(count, "Lipseste '' de dupa instructiunea 'break' in stm")
+                
+        
+        if(consume(RETURN)):
+                expr()
 
-		if(consume(SEMICOLON)){
-			return 1;
-		} else{
-			tokenError(currToken, "Lipseste ';' de dupa instructiunea 'return' in stm");
-		}
-	}
-	if(expr()){
-		if(consume(SEMICOLON)){
-			return 1;
-		} else{
-			tokenError(currToken, "Lipseste ';' in stm");
-		}
-	} else{
-		if(consume(SEMICOLON)){
-			return 1;
-		}
-	}
-	currToken = initTk;
-	return 0;
-}
+                if(consume(SEMICOLON)):
+                        return True
+                 else:
+                        raise Exception(count, "Lipseste '' de dupa instructiunea 'return' in stm")
+                
+        
+        if(expr()):
+                if(consume(SEMICOLON)):
+                        return True
+                 else:
+                        raise Exception(count, "Lipseste '' in stm")
+                
+         else:
+                if(consume(SEMICOLON)):
+                        return True
+                
+        
+        count = init_count
+        return False
 
-//stmCompound: LACC ( declVar | stm )* RACC ;
-int stmCompound(){
-	Token *initTk = currToken;
-	if(consume(LACC)){
-		while(1){
-			if(declVar()){
 
-			} else if(stm()){
+# stmCompound: LACC ( declVar | stm )* RACC 
+def stmCompound():
+        init_count = count
+        if(consume(LACC)):
+                while(True):
+                        if(declVar()):
 
-			} else {
-				break;
-			}
-		}
-		if(consume(RACC)){
-			return 1;
+                         else if(stm()):
 
-		} else{
-			tokenError(currToken, "Lipseste ')' de dupa '(' din stmCompound");
-		}
-	}
-	currToken = initTk;
-	return 0;
-}
+                         else :
+                                break
+                        
+                
+                if(consume(RACC)):
+                        return True
 
-//expr: exprAssign ;
-int expr(){
-	Token *initTk = currToken;
+                 else:
+                        raise Exception(count, "Lipseste ')' de dupa '(' din stmCompound")
+                
+        
+        count = init_count
+        return False
 
-	if(exprAssign()){
-		return 1;
-	}
 
-	currToken = initTk;
-	return 0;
-}
-//exprAssign: exprUnary ASSIGN exprAssign | exprOr ;
-int exprAssign(){
-  Token *initTk = currToken;
+# expr: exprAssign 
+def expr():
+        init_count = count
 
-  if(exprUnary()){
-    if(consume(ASSIGN)){
-      if(exprAssign()){
-	return 1;
-      }else tokenError(currToken, "Lipseste exprAssign dupa = in exprAssign.");
-    }
-  }
+        if(exprAssign()):
+                return True
+        
 
-  currToken = initTk;
+        count = init_count
+        return False
 
-  if(exprOr()){
-    return 1;
-  }
+# exprAssign: exprUnary ASSIGN exprAssign | exprOr 
+def exprAssign():
+  init_count = count
 
-  currToken = initTk;
-  return 0;
-}
+  if(exprUnary()):
+    if(consume(ASSIGN)):
+      if(exprAssign()):
+        return True
+      else raise Exception(count, "Lipseste exprAssign dupa = in exprAssign.")
+    
+  
 
-//exprOr: exprOr OR exprAnd | exprAnd ;
-int exprOrPrim(){
+  count = init_count
 
-	if(consume(OR)){
-		if(exprAnd()){
-	 		if(exprOrPrim()){
-				return 1;
-	  		}
-		}else {
-			tokenError(currToken, "Lipseste exprAnd dupa OR.");
-		}
-	}
+  if(exprOr()):
+    return True
+  
 
-    return 1;
-}
-//exprOr: exprOr OR exprAnd | exprAnd ;
-int exprOr(){
-  Token *initTk = currToken;
+  count = init_count
+  return False
 
-  if(exprAnd()){
-    if(exprOrPrim()){
-      return 1;
-    }
-  }
 
-  currToken = initTk;
-  return 0;
-}
+# exprOr: exprOr OR exprAnd | exprAnd 
+def exprOrPrim():
 
-//exprAnd: exprAnd AND exprEq | exprEq ;
-int exprAndPrim(){
+        if(consume(OR)):
+                if(exprAnd()):
+                        if(exprOrPrim()):
+                                return True
+                        
+                else :
+                        raise Exception(count, "Lipseste exprAnd dupa OR.")
+                
+        
 
-	if(consume(AND)){
-		if(exprEq()){
-	  		if(exprAndPrim()){
-				return 1;
-		  	}
-		}else{
-			tokenError(currToken, "Lipseste exprEq dupa AND.");
-		}
-	}
+    return True
 
-	return 1;
-}
-//exprAnd: exprAnd AND exprEq | exprEq ;
-int exprAnd(){
-	Token *initTk = currToken;
+# exprOr: exprOr OR exprAnd | exprAnd 
+def exprOr():
+  init_count = count
 
-	if(exprEq()){
-		if(exprAndPrim())
-		  return 1;
-	}
+  if(exprAnd()):
+    if(exprOrPrim()):
+      return True
+    
+  
 
-	currToken = initTk;
-	return 0;
-}
+  count = init_count
+  return False
 
-//exprEq: exprEq ( EQUAL | NOTEQ ) exprRel | exprRel ;
-int exprEqPrim(){
 
-	if(consume(EQUAL) | consume(NOTEQ)){
-		if(exprRel()){
-	  		if(exprEqPrim()){
-				return 1;
-		  	}
-		}else {
-			tokenError(currToken, "Lipseste exprRel dupa = | !\\.");
-		}
-	}
+# exprAnd: exprAnd AND exprEq | exprEq 
+def exprAndPrim():
 
-	return 1;
-}
-//exprEq: exprEq ( EQUAL | NOTEQ ) exprRel | exprRel ;
-int exprEq(){
-	Token *initTk = currToken;
+        if(consume(AND)):
+                if(exprEq()):
+                        if(exprAndPrim()):
+                                return True
+                        
+                else:
+                        raise Exception(count, "Lipseste exprEq dupa AND.")
+                
+        
 
-	if(exprRel()){
-		if(exprEqPrim()){
-		  return 1;
-		}
-	}
+        return True
 
-	currToken = initTk;
-	return 0;
-}
+# exprAnd: exprAnd AND exprEq | exprEq 
+def exprAnd():
+        init_count = count
 
-//exprRel: exprRel ( LESS | LESSEQ | GREATER | GREATEREQ ) exprAdd | exprAdd ;
-int exprRelPrim(){
+        if(exprEq()):
+                if(exprAndPrim())
+                  return True
+        
 
-	if(consume(LESS) | consume(LESSEQ) | consume(GREATER) | consume(GREATEREQ)){
-		if(exprAdd()){
-	  		if(exprRelPrim()){
-				return 1;
-		  	}
-		}else {
-			tokenError(currToken, "Lipseste exprAdd in exprRelPrim.");
-		}
-	}
+        count = init_count
+        return False
 
-	return 1;
-}
-//exprRel: exprRel ( LESS | LESSEQ | GREATER | GREATEREQ ) exprAdd | exprAdd ;
-int exprRel(){
-	Token *initTk = currToken;
 
-	if(exprAdd()){
-		if(exprRelPrim()){
-		  return 1;
-		}
-	}
+# exprEq: exprEq ( EQUAL | NOTEQ ) exprRel | exprRel 
+def exprEqPrim():
 
-	currToken = initTk;
-	return 0;
-}
+        if(consume(EQUAL) | consume(NOTEQ)):
+                if(exprRel()):
+                        if(exprEqPrim()):
+                                return True
+                        
+                else :
+                        raise Exception(count, "Lipseste exprRel dupa = | !\\.")
+                
+        
 
-//exprAdd: exprAdd ( ADD | SUB ) exprMul | exprMul ;
-int exprAddPrim(){
+        return True
 
-	if(consume(ADD) | consume(SUB)){
-		if(exprMul()){
-	  		if(exprAddPrim()){
-				return 1;
-			}
-		}else {
-			tokenError(currToken, "Lipseste exprMul dupa +|-.");
-		}
-	}
+# exprEq: exprEq ( EQUAL | NOTEQ ) exprRel | exprRel 
+def exprEq():
+        init_count = count
 
-	return 1;
-}
-//exprAdd: exprAdd ( ADD | SUB ) exprMul | exprMul ;
-int exprAdd(){
-	Token *initTk = currToken;
+        if(exprRel()):
+                if(exprEqPrim()):
+                  return True
+                
+        
 
-	if(exprMul()){
-		if(exprAddPrim()){
-		  return 1;
-		}else{
-			tokenError(currToken, "Lipseste elementul dupa exprMul in exprAdd");
-		}
-	}
+        count = init_count
+        return False
 
-	currToken = initTk;
-	return 0;
-}
 
-//exprMul: exprMul ( MUL | DIV ) exprCast | exprCast ;
-int exprMulPrim(){
+# exprRel: exprRel ( LESS | LESSEQ | GREATER | GREATEREQ ) exprAdd | exprAdd 
+def exprRelPrim():
 
-	if(consume(MUL) || consume(DIV)){
-		if(exprCast()){
-	  		if(exprMulPrim()){
-				return 1;
-			}else {
-				tokenError(currToken, "Lipseste exprCast dupa *|\\.");
-			}
-		} else{
-			tokenError(currToken, "Lipseste elementul dupa MUL/DIV in exprMulPrim");
-		}
-	}
+        if(consume(LESS) | consume(LESSEQ) | consume(GREATER) | consume(GREATEREQ)):
+                if(exprAdd()):
+                        if(exprRelPrim()):
+                                return True
+                        
+                else :
+                        raise Exception(count, "Lipseste exprAdd in exprRelPrim.")
+                
+        
 
-	return 1;
-}
-//exprMul: exprMul ( MUL | DIV ) exprCast | exprCast ;
-int exprMul(){
-	Token *initTk = currToken;
+        return True
 
-	if(exprCast()){
-		if(exprMulPrim()){
-		  return 1;
-		}
-	}
+# exprRel: exprRel ( LESS | LESSEQ | GREATER | GREATEREQ ) exprAdd | exprAdd 
+def exprRel():
+        init_count = count
 
-	currToken = initTk;
-	return 0;
-}
+        if(exprAdd()):
+                if(exprRelPrim()):
+                  return True
+                
+        
 
-//exprCast: LPAR typeName RPAR exprCast | exprUnary ;
-int exprCast(){
-	Token *initTk = currToken;
+        count = init_count
+        return False
 
-	if(consume(LPAR)){
-		if(typeName()){
-			if(consume(RPAR)){
-				if(exprCast()){
-			  		return 1;
-				}else {
-					tokenError(currToken, "Lipseste exprCast dupa ')' in exprCast.");
-				}
-			} else {
-				tokenError(currToken, "Lipseste ')' dupa typeName in exprCast.");
-			}
-		}else {
-			tokenError(currToken, "Lipseste typeName dupa '(' in exprCast.");
-		}
-	} else {
-		if(exprUnary()){
-			return 1;
-		}
-	}
 
-	currToken = initTk;
-	return 0;
-}
+# exprAdd: exprAdd ( ADD | SUB ) exprMul | exprMul 
+def exprAddPrim():
 
-//exprUnary: ( SUB | NOT ) exprUnary | exprPostfix ;
-int exprUnary(){
-	Token *initTk = currToken;
+        if(consume(ADD) | consume(SUB)):
+                if(exprMul()):
+                        if(exprAddPrim()):
+                                return True
+                        
+                else :
+                        raise Exception(count, "Lipseste exprMul dupa +|-.")
+                
+        
 
-	if(consume(SUB) | consume(NOT)){
-		if(exprUnary()){
-		  return 1;
-		}else {
-			tokenError(currToken, "Lipseste exprUnary dupa +|! in exprUnary");
-		}
-	} else {
-		if(exprPostfix()){
-			return 1;
-		}
-	}
+        return True
 
-	currToken = initTk;
-	return 0;
-}
-/*exprPostfix: exprPostfix LBRACKET expr RBRACKET
-           | exprPostfix DOT ID
-           | exprPrimary ;*/
-int exprPostfixPrim(){
+# exprAdd: exprAdd ( ADD | SUB ) exprMul | exprMul 
+def exprAdd():
+        init_count = count
 
-	if(consume(LBRACKET)){
-		if(expr()){
-  			if(consume(RBRACKET)){
-				if(exprPostfixPrim()){
-	  				return 1;
-				}
-	  		}else {
-	  			tokenError(currToken, "Lipseste ] dupa expr in exprPostfixPrim.");
-	  		}
-		}else{
-			tokenError(currToken, "Lipseste expr dupa [ in exprPostfixPrim.");
-		}
-    }
+        if(exprMul()):
+                if(exprAddPrim()):
+                  return True
+                else:
+                        raise Exception(count, "Lipseste elementul dupa exprMul in exprAdd")
+                
+        
 
-	if(consume(DOT)){
-		if(consume(ID)){
-	  		if(exprPostfixPrim()){
-				return 1;
-	  		}
-		}else {
-			tokenError(currToken, "Lipseste id dupa . in exprPostfixPrim.");
-		}
-	}
+        count = init_count
+        return False
 
-	return 1;
-}
+
+# exprMul: exprMul ( MUL | DIV ) exprCast | exprCast 
+def exprMulPrim():
+
+        if(consume(MUL) || consume(DIV)):
+                if(exprCast()):
+                        if(exprMulPrim()):
+                                return True
+                        else :
+                                raise Exception(count, "Lipseste exprCast dupa *|\\.")
+                        
+                 else:
+                        raise Exception(count, "Lipseste elementul dupa MUL/DIV in exprMulPrim")
+                
+        
+
+        return True
+
+# exprMul: exprMul ( MUL | DIV ) exprCast | exprCast 
+def exprMul():
+        init_count = count
+
+        if(exprCast()):
+                if(exprMulPrim()):
+                  return True
+                
+        
+
+        count = init_count
+        return False
+
+
+# exprCast: LPAR typeName RPAR exprCast | exprUnary 
+def exprCast():
+        init_count = count
+
+        if(consume(LPAR)):
+                if(typeName()):
+                        if(consume(RPAR)):
+                                if(exprCast()):
+                                        return True
+                                else :
+                                        raise Exception(count, "Lipseste exprCast dupa ')' in exprCast.")
+                                
+                         else :
+                                raise Exception(count, "Lipseste ')' dupa typeName in exprCast.")
+                        
+                else :
+                        raise Exception(count, "Lipseste typeName dupa '(' in exprCast.")
+                
+         else :
+                if(exprUnary()):
+                        return True
+                
+        
+
+        count = init_count
+        return False
+
+
+# exprUnary: ( SUB | NOT ) exprUnary | exprPostfix 
+def exprUnary():
+        init_count = count
+
+        if(consume(SUB) | consume(NOT)):
+                if(exprUnary()):
+                  return True
+                else :
+                        raise Exception(count, "Lipseste exprUnary dupa +|! in exprUnary")
+                
+         else :
+                if(exprPostfix()):
+                        return True
+                
+        
+
+        count = init_count
+        return False
 
 /*exprPostfix: exprPostfix LBRACKET expr RBRACKET
            | exprPostfix DOT ID
-           | exprPrimary ;*/
-int exprPostfix(){
-	Token *initTk = currToken;
+           | exprPrimary */
+def exprPostfixPrim():
 
-	if(exprPrimary()){
-		if(exprPostfixPrim()){
-		  return 1;
-		}
-	}
+        if(consume(LBRACKET)):
+                if(expr()):
+                        if(consume(RBRACKET)):
+                                if(exprPostfixPrim()):
+                                        return True
+                                
+                        else :
+                                raise Exception(count, "Lipseste ] dupa expr in exprPostfixPrim.")
+                        
+                else:
+                        raise Exception(count, "Lipseste expr dupa [ in exprPostfixPrim.")
+                
+    
 
-	currToken = initTk;
-	return 0;
-}
+        if(consume(DOT)):
+                if(consume(ID)):
+                        if(exprPostfixPrim()):
+                                return True
+                        
+                else :
+                        raise Exception(count, "Lipseste id dupa . in exprPostfixPrim.")
+                
+        
+
+        return True
+
+
+/*exprPostfix: exprPostfix LBRACKET expr RBRACKET
+           | exprPostfix DOT ID
+           | exprPrimary */
+def exprPostfix():
+        init_count = count
+
+        if(exprPrimary()):
+                if(exprPostfixPrim()):
+                  return True
+                
+        
+
+        count = init_count
+        return False
+
 
 /*exprPrimary: ID ( LPAR ( expr ( COMMA expr )* )? RPAR )?
            | CT_INT
            | CT_REAL
            | CT_CHAR
            | CT_STRING
-           | LPAR epxr RPAR ;*/
+           | LPAR epxr RPAR */
 
-int exprPrimary(){
-  Token *initTk = currToken;
+def exprPrimary():
+  init_count = count
 
-	if(consume(ID)){
-		if(consume(LPAR)){
-			if(expr()){
-				while(1){
-	  				if(consume(COMMA)){
-	    				if(expr()){
+        if(consume(ID)):
+                if(consume(LPAR)):
+                        if(expr()):
+                                while(True):
+                                        if(consume(COMMA)):
+                                        if(expr()):
 
-	    				} else{
-	    					tokenError(currToken, "Lipseste expr dupa , in exprPrimary.");
-	    				}
-	  				}else break;
-				}
-	 		}
-	  		if(consume(RPAR)){
-				return 1;
-	  		}else {
-                tokenError(currToken, "Lipseste ) dupa ( in exprPrimary.");
-            }
-		}
-		return 1;
-	}
+                                         else:
+                                                raise Exception(count, "Lipseste expr dupa , in exprPrimary.")
+                                        
+                                        else break
+                                
+                        
+                        if(consume(RPAR)):
+                                return True
+                        else :
+                raise Exception(count, "Lipseste ) dupa ( in exprPrimary.")
+            
+                
+                return True
+        
 
-	if(consume(CT_INT)){
-		return 1;
-	}
+        if(consume(CT_INT)):
+                return True
+        
 
-	if(consume(CT_REAL)){
-		return 1;
-	}
+        if(consume(CT_REAL)):
+                return True
+        
 
-	if(consume(CT_CHAR)){
-		return 1;
-	}
+        if(consume(CT_CHAR)):
+                return True
+        
 
-	if(consume(CT_STRING)){
-		return 1;
-	}
+        if(consume(CT_STRING)):
+                return True
+        
 
-	if(consume(LPAR)){
-		if(expr()){
-			if(consume(RPAR)){
-				return 1;
-		  	}else tokenError(currToken, "Lipseste ')' dupa expr in exprPrimary.");
-		}else tokenError(currToken, "Lipseste expr dupa '(' in exprPrimary.");
-	}
+        if(consume(LPAR)):
+                if(expr()):
+                        if(consume(RPAR)):
+                                return True
+                        else raise Exception(count, "Lipseste ')' dupa expr in exprPrimary.")
+                else raise Exception(count, "Lipseste expr dupa '(' in exprPrimary.")
+        
 
-	currToken = initTk;
-	return 0;
-}
+        count = init_count
+        return False
 
-int main(int argc, char**argv) {
 
-	if(argc != 2){
-		err("Please enter one argument");
-	}
-    readFromFile(argv[1]);
-    tokens =(Token*)malloc(sizeof(Token));
-    currToken = tokens;
+def main(argc, char**argv) :
 
-    while(getNextToken() != END) {
+        if(argc != 2):
+                err("Please enter one argument")
+        
+    readFromFile(argv[True])
+    tokens =(Token*)malloc(sizeof(Token))
+    count = tokens
 
-    }
-    Token *aux = tokens;
-    tokens = tokens->next;
-    aux->next = NULL;
-    free(aux);
-    printAtoms();
+    while(getNextToken() != END) :
 
-    currToken = tokens;
-    unit();
-    return 0;
-}
+    
+    Token *aux = tokens
+    tokens = tokens->next
+    aux->next = NULL
+    free(aux)
+    printAtoms()
+
+    count = tokens
+    unit()
+    return False
+
